@@ -1,151 +1,115 @@
 import streamlit as st
+import numpy as np
 import pandas as pd
-import math
-from pathlib import Path
-
-# Set the title and favicon that appear in the Browser's tab bar.
-st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
-)
-
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
-
-@st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
-
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
-
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
-
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
-
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
-    )
-
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
-
-    return gdp_df
-
-gdp_df = get_gdp_data()
-
-# -----------------------------------------------------------------------------
-# Draw the actual page
-
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
-
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
-
-# Add some spacing
-''
-''
-
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
-
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
-
-countries = gdp_df['Country Code'].unique()
-
-if not len(countries):
-    st.warning("Select at least one country")
-
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
-
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
-
-st.header('GDP over time', divider='gray')
-
-''
-
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
-
-''
-''
+import pickle
+import tensorflow as tf
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from tensorflow.keras.models import load_model # type: ignore
 
 
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
 
-st.header(f'GDP in {to_year}', divider='gray')
+# Fungsi untuk memuat model dan scaler
+def load_models(lstm_path, svm_path, scaler_path, feature_columns_path):
+     # Load LSTM model
+    lstm_model = load_model(lstm_path)
+    with open(svm_path, 'rb') as svm_file:
+        svm_classifier = pickle.load(svm_file)
+    with open(scaler_path, 'rb') as scaler_file:
+        scaler = pickle.load(scaler_file)
+    with open(feature_columns_path, 'rb') as f:
+        feature_columns = pickle.load(f)
+    
+    return svm_classifier, scaler, feature_columns
 
-''
 
-cols = st.columns(4)
+# Tentukan path untuk model, scaler, dan feature columns
+lstm_path = '/workspaces/pemrograman/lstm_model.h5'
+svm_path = '/workspaces/pemrograman/svm_classifier.pkl'
+scaler_path = '/workspaces/pemrograman/scaler.pkl'
+feature_columns_path = '/workspaces/pemrograman/feature_columns.pkl'
 
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
+# Memuat model SVM, scaler, dan feature columns
+svm_classifier, scaler, feature_columns = load_models(lstm_path, svm_path, scaler_path, feature_columns_path)
 
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
+# Judul aplikasi
+st.title("Aplikasi Prediksi Serangan Botnet IoT")
 
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
-        else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
+# Input dari pengguna
+st.write("Masukkan data berikut:")
 
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
-        )
+# Membuat form input untuk fitur sesuai dengan UNSW dataset
+# Anda perlu menyesuaikan input ini dengan fitur-fitur yang digunakan dalam model Anda
+pkSeqID = st.number_input("pkSeqID", min_value=0, value=3577246)
+stime = st.number_input("stime", min_value=0, value=1526351547)
+flgs = st.selectbox("flgs", ["e", "other_options"])  # Ganti "other_options" sesuai opsi flgs yang ada
+flgs_number = st.number_input("flgs_number", min_value=0, value=1)
+proto = st.selectbox("proto", ["udp", "tcp", "icmp"])  # Sesuaikan dengan opsi proto
+proto_number = st.number_input("proto_number", min_value=0, value=3)
+saddr = st.text_input("saddr", value='192.168.100.148')
+sport = st.number_input("sport", min_value=0, value=41735)
+daddr = st.text_input("daddr", value='8.8.8.8')
+dport = st.number_input("dport", min_value=0, value=53)
+pkts = st.number_input("pkts", min_value=0, value=30)
+AR_P_Proto_P_DstIP = st.number_input("AR_P_Proto_P_DstIP", min_value=0.0, value=269.7210)
+N_IN_Conn_P_DstIP = st.number_input("N_IN_Conn_P_DstIP", min_value=0, value=15)
+N_IN_Conn_P_SrcIP = st.number_input("N_IN_Conn_P_SrcIP", min_value=0, value=20)
+AR_P_Proto_P_Sport = st.number_input("AR_P_Proto_P_Sport", min_value=0.0, value=263.2270)
+AR_P_Proto_P_Dport = st.number_input("AR_P_Proto_P_Dport", min_value=0.0, value=0.322581)
+Pkts_P_State_P_Protocol_P_DestIP = st.number_input("Pkts_P_State_P_Protocol_P_DestIP", min_value=0, value=30)
+Pkts_P_State_P_Protocol_P_SrcIP = st.number_input("Pkts_P_State_P_Protocol_P_SrcIP", min_value=0, value=12)
+attack = st.selectbox("attack", [0, 1])  # 0: Normal, 1: Attack
+category = st.selectbox("category", ["Normal", "Attack"])  # Sesuaikan dengan kategori yang ada
+
+# Menggabungkan input menjadi dictionary
+input_data = {
+    'pkSeqID': pkSeqID,
+    'stime': stime,
+    'flgs': flgs,
+    'flgs_number': flgs_number,
+    'proto': proto,
+    'proto_number': proto_number,
+    'saddr': saddr,
+    'sport': sport,
+    'daddr': daddr,
+    'dport': dport,
+    'pkts': pkts,
+    'AR_P_Proto_P_DstIP': AR_P_Proto_P_DstIP,
+    'N_IN_Conn_P_DstIP': N_IN_Conn_P_DstIP,
+    'N_IN_Conn_P_SrcIP': N_IN_Conn_P_SrcIP,
+    'AR_P_Proto_P_Sport': AR_P_Proto_P_Sport,
+    'AR_P_Proto_P_Dport': AR_P_Proto_P_Dport,
+    'Pkts_P_State_P_Protocol_P_DestIP': Pkts_P_State_P_Protocol_P_DestIP,
+    'Pkts_P_State_P_Protocol_P_SrcIP': Pkts_P_State_P_Protocol_P_SrcIP,
+    'attack': attack,
+    'category': category
+    # Tambahkan fitur lainnya jika ada
+}
+
+# Tombol prediksi
+if st.button("Prediksi"):
+    # Membuat DataFrame dari input
+    input_df = pd.DataFrame([input_data])
+    
+    # Mengonversi kolom kategorikal menjadi one-hot encoding
+    input_df_encoded = pd.get_dummies(input_df)
+    
+    # Menambahkan kolom yang hilang sesuai dengan fitur pelatihan
+    for col in feature_columns:
+        if col not in input_df_encoded.columns:
+            input_df_encoded[col] = 0
+    
+    # Reorder kolom agar sesuai dengan pelatihan
+    input_df_encoded = input_df_encoded[feature_columns]
+    
+    # Melakukan scaling pada data input
+    std_data = scaler.transform(input_df_encoded)
+    
+    # Melakukan prediksi menggunakan model SVM
+    prediction = svm_classifier.predict(std_data)
+    
+    # Menampilkan hasil prediksi
+    if prediction[0] == 'Normal':
+        st.write("Hasil Prediksi: Data tidak menunjukkan serangan Botnet")
+    else:
+        st.write("Hasil Prediksi: Data menunjukkan serangan Botnet")
