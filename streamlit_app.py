@@ -2,16 +2,13 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import pickle
-import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from tensorflow.keras.models import load_model # type: ignore
 
-
-
 # Fungsi untuk memuat model dan scaler
 def load_models(lstm_path, svm_path, scaler_path, feature_columns_path):
-     # Load LSTM model
+    # Load LSTM model
     lstm_model = load_model(lstm_path)
     with open(svm_path, 'rb') as svm_file:
         svm_classifier = pickle.load(svm_file)
@@ -19,9 +16,7 @@ def load_models(lstm_path, svm_path, scaler_path, feature_columns_path):
         scaler = pickle.load(scaler_file)
     with open(feature_columns_path, 'rb') as f:
         feature_columns = pickle.load(f)
-    
-    return svm_classifier, scaler, feature_columns
-
+    return lstm_model, svm_classifier, scaler, feature_columns
 
 # Tentukan path untuk model, scaler, dan feature columns
 lstm_path = '/workspaces/pemrograman/lstm_model.h5'
@@ -30,21 +25,20 @@ scaler_path = '/workspaces/pemrograman/scaler.pkl'
 feature_columns_path = '/workspaces/pemrograman/feature_columns.pkl'
 
 # Memuat model SVM, scaler, dan feature columns
-svm_classifier, scaler, feature_columns = load_models(lstm_path, svm_path, scaler_path, feature_columns_path)
+lstm_model, svm_classifier, scaler, feature_columns = load_models(lstm_path, svm_path, scaler_path, feature_columns_path)
 
 # Judul aplikasi
 st.title("Aplikasi Prediksi Serangan Botnet IoT")
 
 # Input dari pengguna
 st.write("Masukkan data berikut:")
-
 # Membuat form input untuk fitur sesuai dengan UNSW dataset
-# Anda perlu menyesuaikan input ini dengan fitur-fitur yang digunakan dalam model Anda
+# Sesuaikan input ini dengan fitur-fitur yang digunakan dalam model Anda
 pkSeqID = st.number_input("pkSeqID", min_value=0, value=3577246)
 stime = st.number_input("stime", min_value=0, value=1526351547)
-flgs = st.selectbox("flgs", ["e", "other_options"])  # Ganti "other_options" sesuai opsi flgs yang ada
+flgs = st.selectbox("flgs", ["e", "other_options"])
 flgs_number = st.number_input("flgs_number", min_value=0, value=1)
-proto = st.selectbox("proto", ["udp", "tcp", "icmp"])  # Sesuaikan dengan opsi proto
+proto = st.selectbox("proto", ["udp", "tcp", "icmp"])
 proto_number = st.number_input("proto_number", min_value=0, value=3)
 saddr = st.text_input("saddr", value='192.168.100.148')
 sport = st.number_input("sport", min_value=0, value=41735)
@@ -59,7 +53,7 @@ AR_P_Proto_P_Dport = st.number_input("AR_P_Proto_P_Dport", min_value=0.0, value=
 Pkts_P_State_P_Protocol_P_DestIP = st.number_input("Pkts_P_State_P_Protocol_P_DestIP", min_value=0, value=30)
 Pkts_P_State_P_Protocol_P_SrcIP = st.number_input("Pkts_P_State_P_Protocol_P_SrcIP", min_value=0, value=12)
 attack = st.selectbox("attack", [0, 1])  # 0: Normal, 1: Attack
-category = st.selectbox("category", ["Normal", "Attack"])  # Sesuaikan dengan kategori yang ada
+category = st.selectbox("category", ["Normal", "Attack"])
 
 # Menggabungkan input menjadi dictionary
 input_data = {
@@ -83,10 +77,9 @@ input_data = {
     'Pkts_P_State_P_Protocol_P_SrcIP': Pkts_P_State_P_Protocol_P_SrcIP,
     'attack': attack,
     'category': category
-    # Tambahkan fitur lainnya jika ada
 }
 
-# Tombol prediksi
+## Tombol prediksi
 if st.button("Prediksi"):
     # Membuat DataFrame dari input
     input_df = pd.DataFrame([input_data])
@@ -94,20 +87,27 @@ if st.button("Prediksi"):
     # Mengonversi kolom kategorikal menjadi one-hot encoding
     input_df_encoded = pd.get_dummies(input_df)
     
-    # Menambahkan kolom yang hilang sesuai dengan fitur pelatihan
+    # Menambahkan kolom yang hilang agar sesuai dengan fitur training
     for col in feature_columns:
         if col not in input_df_encoded.columns:
             input_df_encoded[col] = 0
     
-    # Reorder kolom agar sesuai dengan pelatihan
-    input_df_encoded = input_df_encoded[feature_columns]
+    # Menyusun ulang kolom agar sesuai dengan urutan feature_columns
+    input_df_encoded = input_df_encoded.reindex(columns=feature_columns, fill_value=0)
     
     # Melakukan scaling pada data input
-    std_data = scaler.transform(input_df_encoded)
-    
+    try:
+        std_data = scaler.transform(input_df_encoded)
+    except ValueError as e:
+        st.error(f"Error dalam scaling data: {e}")
+        st.stop()
+
     # Melakukan prediksi menggunakan model SVM
-    prediction = svm_classifier.predict(std_data)
-    
+    try:
+        prediction = svm_classifier.predict(std_data)
+    except ValueError as e:
+        st.error(f"Error dalam prediksi menggunakan model SVM: {e}")
+        st.stop()
     # Menampilkan hasil prediksi
     if prediction[0] == 'Normal':
         st.write("Hasil Prediksi: Data tidak menunjukkan serangan Botnet")
