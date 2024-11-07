@@ -20,7 +20,7 @@ def load_models(lstm_path, svm_path, scaler_path, feature_columns_path):
     return lstm_model, svm_classifier, scaler, feature_columns
 
 # Tentukan path untuk model, scaler, dan feature columns
-lstm_path = joblib.load '/workspaces/pemrograman/lstm_model.h5'
+lstm_path = '/workspaces/pemrograman/lstm_model.h5'
 svm_path = '/workspaces/pemrograman/svm_classifier.pkl'
 scaler_path = '/workspaces/pemrograman/scaler.pkl'
 feature_columns_path = '/workspaces/pemrograman/feature_columns.pkl'
