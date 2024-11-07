@@ -25,12 +25,6 @@ svm_path = '/workspaces/pemrograman/svm_classifier.pkl'
 scaler_path = '/workspaces/pemrograman/scaler.pkl'
 feature_columns_path = '/workspaces/pemrograman/feature_columns.pkl'
 
-print("LSTM Path:", lstm_path)
-print("SVM Path:", svm_path)
-print("Scaler Path:", scaler_path)
-print("Feature Columns Path:", feature_columns_path)
-
-
 # Memuat model SVM, scaler, dan feature columns
 lstm_model, svm_classifier, scaler, feature_columns = load_models(lstm_path, svm_path, scaler_path, feature_columns_path)
 
