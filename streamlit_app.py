@@ -6,43 +6,21 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from tensorflow.keras.models import load_model
 import joblib
-import os
 
 # Fungsi untuk memuat model dan scaler
 def load_models(lstm_path, svm_path, scaler_path, feature_columns_path):
-    try:
-        # Load LSTM model
-        lstm_model = load_model(lstm_path)
-    except Exception as e:
-        st.error(f"Gagal memuat model LSTM dari {lstm_path}: {e}")
-        st.stop()
-
-    try:
-        with open(svm_path, 'rb') as svm_file:
-            svm_classifier = pickle.load(svm_file)
-    except Exception as e:
-        st.error(f"Gagal memuat model SVM dari {svm_path}: {e}")
-        st.stop()
-
-    try:
-        with open(scaler_path, 'rb') as scaler_file:
-            scaler = pickle.load(scaler_file)
-    except Exception as e:
-        st.error(f"Gagal memuat scaler dari {scaler_path}: {e}")
-        st.stop()
-
-    try:
-        with open(feature_columns_path, 'rb') as f:
-            feature_columns = pickle.load(f)
-    except Exception as e:
-        st.error(f"Gagal memuat feature columns dari {feature_columns_path}: {e}")
-        st.stop()
-
+    # Load LSTM model
+    lstm_model = load_model(lstm_path)
+    with open(svm_path, 'rb') as svm_file:
+        svm_classifier = pickle.load(svm_file)
+    with open(scaler_path, 'rb') as scaler_file:
+        scaler = pickle.load(scaler_file)
+    with open(feature_columns_path, 'rb') as f:
+        feature_columns = pickle.load(f)
     return lstm_model, svm_classifier, scaler, feature_columns
 
 # Tentukan path untuk model, scaler, dan feature columns
-lstm_path = lstm_path = '/mnt/data/lstm_model.h5'
-
+lstm_path = '/workspaces/pemrograman/lstm_model.h5'
 svm_path = '/workspaces/pemrograman/svm_classifier.pkl'
 scaler_path = '/workspaces/pemrograman/scaler.pkl'
 feature_columns_path = '/workspaces/pemrograman/feature_columns.pkl'
@@ -101,22 +79,22 @@ input_data = {
     'category': category
 }
 
-# Tombol prediksi
+## Tombol prediksi
 if st.button("Prediksi"):
     # Membuat DataFrame dari input
     input_df = pd.DataFrame([input_data])
-
+    
     # Mengonversi kolom kategorikal menjadi one-hot encoding
     input_df_encoded = pd.get_dummies(input_df)
-
+    
     # Menambahkan kolom yang hilang agar sesuai dengan fitur training
     for col in feature_columns:
         if col not in input_df_encoded.columns:
             input_df_encoded[col] = 0
-
+    
     # Menyusun ulang kolom agar sesuai dengan urutan feature_columns
     input_df_encoded = input_df_encoded.reindex(columns=feature_columns, fill_value=0)
-
+    
     # Melakukan scaling pada data input
     try:
         std_data = scaler.transform(input_df_encoded)
@@ -131,7 +109,7 @@ if st.button("Prediksi"):
         st.error(f"Error dalam prediksi menggunakan model SVM: {e}")
         st.stop()
     # Menampilkan hasil prediksi
-    if prediction[0] == 0:  # Menggunakan 0 untuk normal dan 1 untuk attack
+    if prediction[0] == 'Normal':
         st.write("Hasil Prediksi: Data tidak menunjukkan serangan Botnet")
     else:
         st.write("Hasil Prediksi: Data menunjukkan serangan Botnet")
