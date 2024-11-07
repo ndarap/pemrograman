@@ -32,7 +32,6 @@ st.title("Aplikasi Prediksi Serangan Botnet IoT")
 
 # Input dari pengguna
 st.write("Masukkan data berikut:")
-# Membuat form input untuk fitur sesuai dengan UNSW dataset
 # Sesuaikan input ini dengan fitur-fitur yang digunakan dalam model Anda
 pkSeqID = st.number_input("pkSeqID", min_value=0, value=3577246)
 stime = st.number_input("stime", min_value=0, value=1526351547)
