@@ -20,10 +20,10 @@ def load_models(lstm_path, svm_path, scaler_path, feature_columns_path):
     return lstm_model, svm_classifier, scaler, feature_columns
 
 # Tentukan path untuk model, scaler, dan feature columns
-lstm_path = './lstm_model.h5'
-svm_path = './svm_classifier.pkl'
-scaler_path = './scaler.pkl'
-feature_columns_path = './feature_columns.pkl'
+lstm_path = 'lstm_model.h5'
+svm_path = 'svm_classifier.pkl'
+scaler_path = 'scaler.pkl'
+feature_columns_path = 'feature_columns.pkl'
 
 # Memuat model SVM, scaler, dan feature columns
 lstm_model, svm_classifier, scaler, feature_columns = load_models(lstm_path, svm_path, scaler_path, feature_columns_path)
