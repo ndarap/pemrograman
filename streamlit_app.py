@@ -5,7 +5,7 @@ import pickle
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from tensorflow.keras.models import load_model
-import joblib
+
 
 # Fungsi untuk memuat model dan scaler
 def load_models(lstm_path, svm_path, scaler_path, feature_columns_path):
@@ -21,7 +21,7 @@ def load_models(lstm_path, svm_path, scaler_path, feature_columns_path):
 
 # Tentukan path untuk model, scaler, dan feature columns
 lstm_path = '/workspaces/pemrograman/lstm_model.h5'
-svm_path = '/workspaces/pemrograman/svm_classifier.pkl'
+svm_path = '/workspaces/pemrograman/svm_model.pkl'
 scaler_path = '/workspaces/pemrograman/scaler.pkl'
 feature_columns_path = '/workspaces/pemrograman/feature_columns.pkl'
 
